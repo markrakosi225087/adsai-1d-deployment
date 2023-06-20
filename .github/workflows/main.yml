@@ -1,22 +1,29 @@
-name: Auto-approve Pull Requests
+name: Auto-approve and Merge Pull Requests
 
 on:
   pull_request:
-    types:
-      - opened
 
 jobs:
-  auto-approve:
+  auto-approve-and-merge:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Auto-approve Pull Request
+      - name: Auto-approve and Merge Pull Request
         run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN=${{ secrets.LOCAL_AUTOPULL }}
           PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           API_URL="https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews"
           PAYLOAD=$(echo '{}' | jq --arg body "Auto-approved" '.body = $body')
-          curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d "$PAYLOAD" "$API_URL
+          echo "$PAYLOAD" | curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d @- "$API_URL"
+
+          # Wait for a few seconds before merging
+          sleep 5
+
+          # Merge the pull request
+          API_URL="https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/merge"
+          PAYLOAD=$(echo '{}' | jq '.merge_method = "merge"')
+          echo "$PAYLOAD" | curl -sS -X PUT -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d @- "$API_URL"
+
