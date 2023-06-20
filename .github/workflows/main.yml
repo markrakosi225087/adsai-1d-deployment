@@ -15,8 +15,9 @@ jobs:
 
       - name: Auto-approve Pull Request
         run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN=${{ secrets.LOCAL_AUTOPULL }}
           PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           API_URL="https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews"
           PAYLOAD=$(echo '{}' | jq --arg body "Auto-approved" '.body = $body')
-          curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d "$PAYLOAD" "$API_URL
+          echo "$PAYLOAD" | curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d @- "$API_URL"
+
